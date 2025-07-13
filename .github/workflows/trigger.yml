@@ -1,0 +1,55 @@
+name: Repo Events Record
+
+on:
+  push:
+  pull_request:
+    types: [opened]
+  pull_request_target:
+    types: [closed]
+
+jobs:
+  send-webhook:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Send Event information to Receiver
+        run: |
+          echo "Preparing webhook payload..."
+
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          # Detect action type and branches
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            ACTION="PUSH"
+            REQUEST_ID="${{ github.sha }}"
+            FROM_BRANCH=""
+            TO_BRANCH="${{ github.ref_name }}"
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            ACTION="PULL_REQUEST"
+            REQUEST_ID="PR-${{ github.event.pull_request.number }}"
+            FROM_BRANCH="${{ github.event.pull_request.head.ref }}"
+            TO_BRANCH="${{ github.event.pull_request.base.ref }}"
+          elif [[ "${{ github.event_name }}" == "pull_request_target" && "${{ github.event.pull_request.merged }}" == "true" ]]; then
+            ACTION="MERGE"
+            REQUEST_ID="PR-${{ github.event.pull_request.number }}"
+            FROM_BRANCH="${{ github.event.pull_request.head.ref }}"
+            TO_BRANCH="${{ github.event.pull_request.base.ref }}"
+          else
+            echo "No matching action type to report."
+            exit 0
+          fi
+
+          # Send POST request
+          curl -X POST "${{ secrets.WEBHOOK_HOST }}/webhook/receiver" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "request_id": "'$REQUEST_ID'",
+              "author": "${{ github.actor }}",
+              "action": "'$ACTION'",
+              "from_branch": "'$FROM_BRANCH'",
+              "to_branch": "'$TO_BRANCH'",
+              "timestamp": "'$TIMESTAMP'"
+            }'
