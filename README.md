@@ -14,9 +14,9 @@ This is a GitHub Repository to demonstrate integration of GitHub Actions to reco
 ## 💼 Payload Schema
 ```
 {
-  "_id": "<MongoDB ObjectId>"
+  "_id": "<MongoDB ObjectId()>"
   "request_id": "PR-14 / <commit-sha>",
-  "author": "username",
+  "author": "riyazuddin-1",
   "action": "PUSH | PULL_REQUEST | MERGE",
   "from_branch": "feature-branch",
   "to_branch": "main",
